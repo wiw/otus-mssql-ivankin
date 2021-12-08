@@ -232,13 +232,13 @@ order by year(si.InvoiceDate), month(si.InvoiceDate)
 
 select year(si.InvoiceDate)                             as sale_of_year,
        month(si.InvoiceDate)                            as sale_of_month,
-       sil.StockItemID,
+       sil.Description,
        cast(sum(sil.Quantity * sil.UnitPrice) as float) as 'total sale by month',
        sum(sil.Quantity)                                as 'total count',
        min(si.InvoiceDate)                              as 'first sale'
 from Sales.Invoices as si
          join Sales.InvoiceLines as sil on sil.InvoiceID = si.InvoiceID
-group by year(si.InvoiceDate), month(si.InvoiceDate), sil.StockItemID
+group by year(si.InvoiceDate), month(si.InvoiceDate), sil.Description
 having sum(sil.Quantity) < 50
 
 
