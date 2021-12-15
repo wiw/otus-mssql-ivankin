@@ -71,13 +71,20 @@ from Warehouse.StockItems as wsi
 Представьте несколько способов (в том числе с CTE).
 */
 
-select TOP (5) sct.AmountExcludingTax as totalCost,
-               ap.PersonID,
-               ap.FullName,
-               ap.PhoneNumber,
-               ap.EmailAddress
+select TOP (5) sct.AmountExcludingTax             as totalCost,
+               sc.CustomerID,
+               sc.CustomerName,
+               sc.PhoneNumber,
+               concat_ws(', ', aC.CountryName,
+                         asp.StateProvinceName,
+                         act.CityName, sc.DeliveryAddressLine2,
+                         sc.DeliveryAddressLine1) as DeliveryAddress
 from Sales.CustomerTransactions as sct
-         join Application.People as ap on ap.PersonID = sct.CustomerID
+         join Sales.Customers as sc on sc.CustomerID = sct.CustomerID
+         join Application.Cities as act on act.CityID = sc.DeliveryCityID
+         join Application.StateProvinces as asp
+              on asp.StateProvinceID = act.StateProvinceID
+         join Application.Countries as aC on aC.CountryID = asp.CountryID
 where sct.IsFinalized = 'true'
 order by totalCost desc
 
@@ -87,27 +94,26 @@ with top_customer as (select sct.AmountExcludingTax as totalCost,
                       from Sales.CustomerTransactions as sct
                       where sct.IsFinalized = 'true'),
      joined as (select tc.totalCost,
-                       ap.PersonID,
-                       ap.FullName,
-                       ap.PhoneNumber,
-                       ap.EmailAddress
+                       sc.CustomerID,
+                       sc.CustomerName,
+                       sc.PhoneNumber,
+                       concat_ws(', ', aC.CountryName,
+                                 asp.StateProvinceName,
+                                 act.CityName, sc.DeliveryAddressLine2,
+                                 sc.DeliveryAddressLine1) as DeliveryAddress
                 from top_customer as tc
-                         join Application.People as ap
-                              on ap.PersonID = tc.CustomerID)
+                         join Sales.Customers as sc
+                              on sc.CustomerID = tc.CustomerID
+                         join Application.Cities as act
+                              on act.CityID = sc.DeliveryCityID
+                         join Application.StateProvinces as asp
+                              on asp.StateProvinceID = act.StateProvinceID
+                         join Application.Countries as aC
+                              on aC.CountryID = asp.CountryID)
 select *
 from joined
 order by totalCost desc
 offset 0 rows fetch next 5 rows only
-
-select TOP (5) sct.AmountExcludingTax as totalCost,
-               ap.PersonID,
-               ap.FullName,
-               ap.PhoneNumber,
-               ap.EmailAddress
-from Sales.CustomerTransactions as sct
-         join Application.People as ap on ap.PersonID = sct.CustomerID
-where sct.IsFinalized = 'true'
-order by totalCost desc
 
 /*
 4. Выберите города (ид и название), в которые были доставлены товары,
