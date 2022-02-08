@@ -1,0 +1,408 @@
+@startuml
+'https://plantuml.com/class-diagram
+!define table(x) entity x << (T,#FFAAAA) >>
+!define primary_key(x) <u><b>x</b></u>
+!define at(x) <b>x</b>
+hide methods
+hide stereotypes
+hide empty members
+
+header ЦКП Молекулярная и клеточная биология
+
+title Система учета секвенирования нуклеиновых образцов
+
+rectangle Dictionaries {
+    table(street_types) {
+        primary_key(street_type_id) int autoincrement
+        --
+        at(street_type_name) varchar(255) not null
+    }
+
+    table(city_types) {
+        primary_key(city_type_id) int autoincrement
+        --
+        at(city_type_name) varchar(255) not null
+    }
+
+    table(part_dictionary) {
+        primary_key(part_dictionary_id) int autoincrement
+        --
+        at(part_name) varchar(2048) not null
+        --
+        at(part_type) varchar(255) not null
+    }
+
+    table(sequencing_programs) {
+        primary_key(sequencing_program_id) int autoincrement
+        --
+        at(program_name) varchar(2048) not null
+        --
+        at(duration) int not null
+    }
+}
+
+rectangle Sequencing {
+
+    table(orders) {
+        primary_key(order_id) int autoincrement
+        --
+        at(unique_order_id) varchar(8) not null
+        --
+        at(customer_id) ForeignKey(Personalities.customers) not null
+        --
+        at(order_datetime) datetime not null
+    }
+
+    table(order_list) {
+        primary_key(order_list_id) int autoincrement
+        --
+        at(order_id) ForeignKey(Sequencing.orders) not null
+        --
+        at(sequencing_program_id) ForeignKey(Dictionaries.sequencing_programs) not null
+        --
+        at(sample_serial) int not null
+        --
+        at(sample_name) varchar(2048) not null
+        --
+        at(sample_description) varchar(2048) null
+        --
+        at(coming_datetime) datetime not null
+    }
+
+
+    table(execution_orders) {
+        primary_key(execution_order_id) int autoincrement
+        --
+        at(executor_id) ForeignKey(Personalities.executors) not null
+        --
+        at(order_id) ForeignKey(Sequencing.orders) not null
+        --
+        at(execution_datetime) datetime not null
+        --
+        at(equipment_id) ForeignKey(Warehouse.equipment) not null
+    }
+
+    table(execution_order_list) {
+        primary_key(execution_order_list_id) int autoincrement
+        --
+        at(execution_order_id) ForeignKey(Sequencing.execution_orders) not null
+        --
+        at(plate_id) ForeignKey(Sequencing.plates) not null
+        --
+        at(order_list_id) ForeignKey(Sequencing.order_list) not null
+        --
+        at(hole_coord_x) char(1) not null
+        --
+        at(hole_coord_y) tinyint(8) not null
+        --
+        at(start_datetime) datetime not null
+        --
+        at(end_datetime) datetime not null
+    }
+
+    table(plates) {
+        primary_key(plate_id) int autoincrement
+        --
+        at(plate_serial) varchar(16) not null
+        --
+        at(part_id) ForeignKey(Warehouse.parts) not null
+        --
+        at(free_holes) int not null default=96
+        --
+        at(is_new) bool not null default=True
+    }
+
+    table(sequencing_result) {
+        primary_key(sequencing_result_id) int autoincrement
+        --
+        at(execution_order_list) ForeignKey(Sequencing.execution_order_list) not null
+        --
+        at(result_path) varchar(1024) not null
+    }
+
+    orders ||--|{ order_list
+    execution_orders }|--|| orders
+
+    execution_orders ||--|{ execution_order_list
+    order_list ||--|| execution_order_list
+
+    plates ||--|{ execution_order_list
+    sequencing_result ||--|{ execution_order_list
+
+
+}
+
+
+
+
+rectangle Personalities {
+    table(customers) {
+        primary_key(customer_id) int autoincrement
+        --
+        at(person_id) ForeignKey(Personalities.persons) not null
+        --
+        at(organization_id) ForeignKey(Personalities.organizations) null
+        --
+        at(location_address) ForeignKey(Personalities.location_address) not null
+    }
+
+    table(executors) {
+        primary_key(executors_id) int autoincrement
+        --
+        at(person_id) ForeignKey(Personalities.persons) not null
+        --
+        at(organization_id) ForeignKey(Personalities.organizations) null
+        --
+        at(location_address) ForeignKey(Personalities.location_address) not null
+    }
+
+    table(persons) {
+        primary_key(person_id) int autoincrement
+        --
+        at(first_name) varchar(255) not null
+        --
+        at(second_name) varchar(255) null
+        --
+        at(last_name) varchar(255) not null
+        --
+        at(mobile_phone_number) bigint null
+        --
+        at(email) varchar(512) not null
+    }
+
+    table(organizations) {
+        primary_key(organization_id) int autoincrement
+        --
+        at(organization_name) varchar(2048) not null
+        --
+        at(address_id) ForeignKey(Personalities.address) not null
+    }
+
+    table(address) {
+        primary_key(address_id) int autoincrement
+        --
+        at(country_id) ForeignKey(Geography.countries) not null
+        --
+        at(region_id) ForeignKey(Geography.regions) not null
+        --
+        at(city_id) ForeignKey(Geography.cities) not null
+        --
+        at(street_id) ForeignKey(Geography.streets) null
+        --
+        at(house_id) ForeignKey(Geography.house) not null
+    }
+
+    table(location_address) {
+        primary_key(location_address_id) int autoincrement
+        --
+        at(address_id) ForeignKey(Personalities.address) not null
+        --
+        at(floor) int null
+        --
+        at(room) int null
+    }
+
+    persons ||--|{ customers
+
+    persons ||--|| executors
+
+    location_address ||--|{ executors
+
+    organizations ||--|{ customers
+
+    location_address ||--|{ customers
+
+    organizations ||--|{ executors
+
+    address ||--|| organizations
+
+    address ||--|{ location_address
+
+
+}
+
+rectangle Geography {
+    table(countries) {
+        primary_key(country_id) int autoincrement
+        --
+        at(country_name) varchar(255) not null
+        --
+        at(country_code) varchar(8) not null
+    }
+
+    table(regions) {
+        primary_key(region_id) int autoincrement
+        --
+        at(country_id) ForeignKey(Geography.countries) not null
+        --
+        at(region_name) varchar(255) not null
+        --
+        at(region_code) varchar(8) not null
+        --
+        at(region_kladr_id) varchar(128) not null
+    }
+
+    table(cities) {
+        primary_key(city_id) int autoincrement
+        --
+        at(region_id) ForeignKey(Geography.regions) not null
+        --
+        at(city_type) ForeignKey(Dictionaries.city_types)
+        --
+        at(city_name) varchar(255) not null
+    }
+
+    table(streets) {
+        primary_key(street_id) int autoincrement
+        --
+        at(street_type) ForeignKey(Dictionaries.street_types)
+        --
+        at(city_id) ForeignKey(Geography.cities) not null
+        --
+        at(street_name) varchar(255) not null
+    }
+
+    table(house) {
+        primary_key(house_id) int autoincrement
+        --
+        at(city_id) ForeignKey(Geography.cities) not null
+        --
+        at(street_id) ForeignKey(Geography.streets) null
+        --
+        at(house_number) varchar(32) not null
+    }
+
+    countries ||--|{ regions
+
+    regions ||--|{ cities
+
+    cities ||--|{ streets
+
+    streets ||--|{ house
+
+    cities ||--|{ house
+}
+
+
+rectangle Warehouse {
+    table(equipment) {
+        primary_key(equipment_id) int autoincrement
+        --
+        at(equipment_name) varchar(512) not null
+    }
+
+    table(parts) {
+        primary_key(part_id) int autoincrement
+        --
+        at(part_dictionary_id) ForeignKey(Dictionaries.part_dictionary) not null
+        --
+        at(inventory_id) varchar(512) not null
+        --
+        at(cycles_before_replacement) int not null
+    }
+
+    table(sub_part_stocks) {
+        primary_key(sub_part_stocks_id) int autoincrement
+        --
+        at(part_dictionary_id) ForeignKey(Dictionaries.part_dictionary) not null
+        --
+        at(part_id) ForeignKey(Warehouse.parts) not null
+        --
+        at(sub_part_stocks_quantity) int not null
+        --
+        at(warehouses_id) ForeignKey(Warehouse.warehouses) not null
+    }
+
+    table(warehouses) {
+        primary_key(warehouses_id) int autoincrement
+        --
+        at(warehouse_name) varchar(512) null
+        --
+        at(location_address_id) ForeignKey(Personalities.location_address) not null
+    }
+
+    table(stock) {
+        primary_key(stock_id) int autoincrement
+        --
+        at(part_id) ForeignKey(Warehouse.parts) not null
+        --
+        at(part_quantity) int not null
+        --
+        at(warehouses_id) ForeignKey(Warehouse.warehouses) not null
+        --
+        at(coming_datetime) datetime not null
+    }
+
+    table(parts_on_equipment) {
+        primary_key(parts_on_equipment_id) int autoincrement
+        --
+        at(equipment_id) ForeignKey(Warehouse.equipment) not null
+        --
+        at(part_id) ForeignKey(Warehouse.parts) not null
+        --
+        at(is_sub_part) bool not null default=False
+        --
+        at(installed_datetime) datetime not null
+        --
+        at(who_installed) ForeignKey(Personalities.executors) null
+    }
+
+    table(movements_history) {
+        primary_key(movements_history_id) int autoincrement
+        --
+        at(part_id) ForeignKey(Warehouse.parts) not null
+        --
+        at(sub_part_stocks_id) ForeignKey(Warehouse.sub_part_stocks)) null
+        --
+        at(warehouses_id) ForeignKey(Warehouse.warehouses) null
+        --
+        at(equipment_id) ForeignKey(Warehouse.equipment) null
+        --
+        at(movement_datetime) datetime not null
+        --
+        at(who_moved) ForeignKey(Personalities.executors) null
+    }
+
+    sub_part_stocks }|--|| parts
+    sub_part_stocks }|--|| warehouses
+
+    stock }|--|| parts
+    stock }|--|| warehouses
+
+    parts_on_equipment }|--|| equipment
+    parts_on_equipment }|--|| parts
+
+    parts_on_equipment }|--|| executors
+
+    movements_history }|--|| parts
+    movements_history }|--|| sub_part_stocks
+    movements_history }|--|| warehouses
+    movements_history }|--|| equipment
+    movements_history }|--|| executors
+}
+
+streets ||--|{ street_types
+cities ||--|{ city_types
+
+
+address }|--|| countries
+address }|--|| regions
+address }|--|| cities
+address }|--|| streets
+address }|--|| house
+
+parts }|--|| part_dictionary
+sub_part_stocks }|--|| part_dictionary
+movements_history }|--|| executors
+warehouses ||--|| location_address
+
+
+orders }|--|| customers
+order_list }|--|| sequencing_programs
+
+execution_orders }|--|| executors
+execution_orders ||--|| equipment
+
+parts ||--|{ plates
+
+@enduml
