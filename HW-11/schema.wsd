@@ -132,9 +132,6 @@ rectangle Sequencing {
 
 }
 
-
-
-
 rectangle Personalities {
     table(customers) {
         primary_key(customer_id) int autoincrement
